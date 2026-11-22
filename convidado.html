@@ -1,0 +1,39 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>COPIME Lives – Convidado</title><link rel="stylesheet" href="app.css"></head><body><main>
+<h1>🎙️ Você foi convidado(a)</h1><p id="hi"></p>
+<div id="test" class="card"><h2>Teste rápido</h2><ul class="steps" style="list-style:none;padding:0">
+<li><span class="dot" id="d1"></span>Câmera: <span id="t1" class="mut">aguardando</span></li>
+<li><span class="dot" id="d2"></span>Microfone: <span id="t2" class="mut">aguardando</span></li>
+<li><span class="dot" id="d3"></span>Internet: <span id="t3" class="mut">aguardando</span></li></ul>
+<video id="pv" muted playsinline style="width:100%;max-height:220px;border-radius:12px;background:#000;display:none"></video>
+<p id="adv" class="warn"></p>
+<button id="go" class="big">Testar e entrar</button></div>
+<div id="live" style="display:none"><div id="st" class="card"><span class="dot g"></span><span id="stt">Conectado. Aguarde o apresentador te liberar.</span></div>
+<iframe id="fr" allow="camera;microphone;autoplay;display-capture" style="height:62vh"></iframe>
+<div class="row" style="margin-top:8px"><button class="sec grow" id="re">Reconectar</button><button class="sec grow" id="leave">Sair</button></div></div>
+<script>
+const $=id=>document.getElementById(id),P=new URLSearchParams(location.search);
+const room=P.get("r"),id=P.get("i"),nm=P.get("n")||"Convidado",base=(P.get("b")||"https://vdo.ninja").replace(/\/$/,"");
+$("hi").textContent=`Olá, ${nm}! Toque no botão abaixo. Use fone de ouvido, se tiver.`;
+if(!/^[\w-]+$/.test(room||"")||!/^[\w-]+$/.test(id||"")){$("go").disabled=true;$("hi").textContent="Link inválido. Peça um novo link ao apresentador."}
+const mark=(n,ok,t)=>{$("d"+n).className="dot "+(ok?"g":"r");$("t"+n).textContent=t};
+async function speed(){try{const t=performance.now(),r=await fetch(base+"/main.js?"+Date.now(),{cache:"no-store"}),b=await r.blob();
+ return b.size*8/((performance.now()-t)/1000)/1000}catch(e){return 0}}
+let audioOnly=false;
+$("go").onclick=async()=>{$("go").disabled=true;let stream;
+ try{stream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});mark(1,1,"ok");mark(2,1,"ok");const v=$("pv");v.srcObject=stream;v.style.display="block";v.play()}
+ catch(e){try{stream=await navigator.mediaDevices.getUserMedia({audio:true});mark(1,0,"sem câmera ou sem permissão");mark(2,1,"ok");audioOnly=true}
+  catch(e2){mark(1,0,"bloqueada");mark(2,0,"bloqueado. Libere nas configurações do navegador e tente de novo");$("go").disabled=false;return}}
+ const k=await speed();
+ if(!k){mark(3,0,"não consegui medir");audioOnly=true}else if(k<400){mark(3,0,Math.round(k)+" kbps (fraca)");audioOnly=true}else mark(3,1,Math.round(k)+" kbps (boa)");
+ if(audioOnly)$("adv").textContent="Sua internet está fraca. Vamos entrar só com áudio para a live não travar.";
+ stream.getTracks().forEach(t=>t.stop());await new Promise(r=>setTimeout(r,800));enter()};
+function url(){const q=new URLSearchParams({room,push:id,label:nm,password:P.get("p")||"",autostart:"",cleanoutput:"",retrytimeout:"4000"});
+ if(P.get("q")==="1")q.set("queue","");
+ if(audioOnly)q.set("novideo","");else{const eco=P.get("e")==="1";q.set("width",eco?"426":"640");q.set("height",eco?"240":"360");q.set("maxframerate",eco?"15":"24");q.set("videobitrate",eco?"250":"500")}
+ q.set("audiobitrate","48");return `${base}/?`+q.toString().replace(/=(&|$)/g,"$1")}
+function enter(){$("test").style.display="none";$("live").style.display="block";$("fr").src=url()}
+$("re").onclick=()=>{$("fr").src=url()};$("leave").onclick=()=>{$("fr").src="about:blank";$("live").style.display="none";$("hi").textContent="Você saiu da live. Obrigado!"};
+addEventListener("offline",()=>{$("stt").textContent="Sem internet. Voltando sozinho quando o sinal voltar…"});
+addEventListener("online",()=>{if($("live").style.display==="block"){$("stt").textContent="Reconectando…";$("fr").src=url();setTimeout(()=>$("stt").textContent="Conectado. Aguarde o apresentador te liberar.",4000)}});
+</script></main></body></html>

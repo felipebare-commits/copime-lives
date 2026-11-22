@@ -1,0 +1,41 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>COPIME Lives – Painel</title><link rel="stylesheet" href="app.css"></head><body><main>
+<h1>🎙️ COPIME Lives · Painel</h1>
+<div class="card"><h2>1. Sua live</h2>
+<div class="row"><input id="name" class="grow" placeholder="Nome da live (ex.: Bate-papo gamer)">
+<input id="when" class="grow" placeholder="Data e horário (ex.: sábado, 19h)"></div>
+<div class="row" style="margin-top:8px"><label><input type="checkbox" id="eco" style="width:auto"> Modo economia de dados (qualidade menor)</label>
+<label><input type="checkbox" id="wait" style="width:auto" checked> Sala de espera (convidado só vai ao ar quando eu liberar)</label></div>
+<details style="margin-top:8px"><summary class="mut">Avançado</summary>
+<p class="mut">Servidor VDO Ninja (deixe o padrão, ou use a sua cópia própria):</p><input id="base" value="https://vdo.ninja"></details></div>
+<div class="card"><h2>2. Convidados</h2>
+<div class="row"><input id="gname" class="grow" placeholder="Nome do convidado"><button id="add">+ Adicionar convidado</button></div>
+<div id="guests"></div></div>
+<div class="card"><h2>3. Controle e OBS</h2>
+<p class="mut">A sala de controle mostra quem está conectado, sinal e áudio, e libera cada convidado para a live. No OBS, cole o link de cada convidado em uma Fonte de Navegador (1280×720).</p>
+<a id="dir" class="btn ok" target="_blank" rel="noopener">Abrir sala de controle</a></div>
+<p class="mut">Os dados ficam só neste navegador. Câmera e microfone exigem https (ou localhost).</p>
+<script>
+const $=id=>document.getElementById(id);
+const rnd=n=>Array.from(crypto.getRandomValues(new Uint8Array(n)),b=>"abcdefghjkmnpqrstuvwxyz23456789"[b%31]).join("");
+let S;try{S=JSON.parse(localStorage.getItem("copime"))}catch(e){}
+S=S||{name:"",when:"",eco:false,wait:true,base:"https://vdo.ninja",room:"copime"+rnd(8),dkey:rnd(6),guests:[]};
+const save=()=>{S.name=$("name").value;S.when=$("when").value;S.eco=$("eco").checked;S.wait=$("wait").checked;S.base=$("base").value.replace(/\/$/,"");
+ try{localStorage.setItem("copime",JSON.stringify(S))}catch(e){}$("dir").href=dirLink()};
+const dirLink=()=>`${S.base}/?director=${S.room}&password=${S.dkey}&cleanoutput`;
+const pass=()=>`&password=${S.dkey}`;
+function guestLink(g){const u=new URL("convidado.html",location.href);
+ Object.entries({r:S.room,i:g.id,n:g.name,b:S.base,e:S.eco?1:0,q:S.wait?1:0,p:S.dkey}).forEach(([k,v])=>u.searchParams.set(k,v));return u.href}
+const obsLink=g=>`${S.base}/?view=${g.id}&room=${S.room}${pass()}&cleanoutput&autostart&transparent`;
+const waText=g=>`Oi, ${g.name}! Você está convidado(a) para a live "${S.name||"COPIME"}"${S.when?" – "+S.when:""}.\nÉ só abrir o link no celular e tocar em Entrar:\n${guestLink(g)}\n\nDica: use fone de ouvido e fique num lugar com sinal.`;
+const copy=async(t,b)=>{try{await navigator.clipboard.writeText(t)}catch(e){prompt("Copie:",t)}const o=b.textContent;b.textContent="Copiado ✓";setTimeout(()=>b.textContent=o,1500)};
+function render(){const box=$("guests");box.innerHTML="";S.guests.forEach((g,i)=>{const d=document.createElement("div");d.className="card";
+ d.innerHTML=`<div class="row"><b class="grow"></b><button class="sec" data-a="del">Remover</button></div><div class="row" style="margin-top:8px"></div>`;
+ d.querySelector("b").textContent="👤 "+g.name;const r=d.querySelector(".row:last-child");
+ [["Copiar link do convidado",()=>guestLink(g)],["Copiar link do OBS",()=>obsLink(g)]].forEach(([l,f])=>{const b=document.createElement("button");b.textContent=l;b.onclick=()=>copy(f(),b);r.append(b)});
+ const w=document.createElement("a");w.className="btn ok";w.textContent="Enviar pelo WhatsApp";w.target="_blank";w.rel="noopener";w.href="https://wa.me/?text="+encodeURIComponent(waText(g));r.append(w);
+ d.querySelector("[data-a=del]").onclick=()=>{S.guests.splice(i,1);save();render()};box.append(d)})}
+$("add").onclick=()=>{const n=$("gname").value.trim();if(!n)return $("gname").focus();S.guests.push({name:n,id:"g"+rnd(6)});$("gname").value="";save();render()};
+$("name").value=S.name;$("when").value=S.when;$("eco").checked=S.eco;$("wait").checked=S.wait;$("base").value=S.base;
+["name","when","eco","wait","base"].forEach(k=>$(k).addEventListener("input",()=>{save();render()}));save();render();
+</script></main></body></html>
